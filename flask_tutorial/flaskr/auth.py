@@ -6,6 +6,8 @@ from flask import (
 
 from flaskr.db import get_db
 from flask_argon2 import Argon2
+from flaskr.models.user import User
+from sqlalchemy import select
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -25,11 +27,14 @@ def register():
 
         if error is None:
             try:
-                db.execute(
-                    "INSERT INTO user (username, password) VALUES (?, ?)",
-                    (username, Argon2().generate_password_hash(password)),
-                )
+                u = User(username=username, password=Argon2().generate_password_hash(password))
+                db.add(u)
                 db.commit()
+                # db.execute(
+                #     "INSERT INTO user (username, password) VALUES (?, ?)",
+                #     (username, Argon2().generate_password_hash(password)),
+                # )
+                # db.commit()
             except db.IntegrityError:
                 error = f"User {username} is already registered."
             else:
@@ -47,19 +52,17 @@ def login():
         password = request.form['password']
         db = get_db()
         error = None
-        user = db.execute(
-            'SELECT * FROM user WHERE username = ?', (username,)
-        ).fetchone()
-
+        stmt = select(User).where(User.username == username)
+        user = db.scalar(stmt)
         if user is None:
             error = 'Incorrect username.'
-        elif not Argon2().check_password_hash(user['password'], password):
+        elif not Argon2().check_password_hash(user.password, password):
             error = 'Incorrect password.'
 
         if error is None:
             session.clear()
-            session['user_id'] = user['id']
-            return redirect(url_for('index'))
+            session['user_id'] = user.id
+            return redirect(url_for('hello'))
 
         flash(error)
 
@@ -72,15 +75,18 @@ def load_logged_in_user():
     if user_id is None:
         g.user = None
     else:
-        g.user = get_db().execute(
-            'SELECT * FROM user WHERE id = ?', (user_id,)
-        ).fetchone()
+        db = get_db()
+        stmt = select(User).where(User.id == user_id)
+        g.user = db.scalar(stmt)
+        # g.user = get_db().execute(
+        #     'SELECT * FROM user WHERE id = ?', (user_id,)
+        # ).fetchone()
 
 
 @bp.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('index'))
+    return redirect(url_for('auth.login'))
 
 
 def login_required(view):

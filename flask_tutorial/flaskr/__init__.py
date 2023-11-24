@@ -30,6 +30,8 @@ def create_app(test_config=None):
     def hello():
         return 'Hello, World!'
 
+    # pjdir = os.path.abspath(os.path.dirname(__file__))
+    # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(pjdir, '../instance/data.sqlite')
     from . import db
     db.init_app(app)
 
@@ -38,9 +40,9 @@ def create_app(test_config=None):
 
     Argon2(app)
 
-    from . import blog
-    app.register_blueprint(blog.bp)
-    app.add_url_rule('/', endpoint='index')
+    # from . import blog
+    # app.register_blueprint(blog.bp)
+    # app.add_url_rule('/', endpoint='index')
 
     return app
 
