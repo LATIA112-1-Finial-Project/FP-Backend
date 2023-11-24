@@ -1,15 +1,12 @@
-from flask import Flask
-import os
+from sqlalchemy import Integer, String, Column
+from sqlalchemy.orm import relationship
+from .engine import Base
+
+__all__ = ['User']
 
 
-# class User(db.Model):
-#     __tablename__ = 'Users'
-#     _id = db.Column('id', db.Integer, primary_key=True)
-#     name = db.Column('name', db.String(100))
-#     email = db.Column(db.String(100))
-#
-#     def __init__(self, name, email):
-#         self.name = name
-#         self.email = email
-
-
+class User(Base):
+    __tablename__ = 'Users'
+    _id = Column(Integer, primary_key=True)
+    email = Column(String(100))
+    hashed_password = Column(String(100))

@@ -1,6 +1,7 @@
 
 from flask import Flask
 from api import *
+from model import *
 
 app = Flask(__name__)
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
