@@ -2,15 +2,13 @@ import os
 
 from flask import Flask
 from flask_argon2 import Argon2
+from flask_jwt_extended import JWTManager
 
 
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
-    app.config.from_mapping(
-        SECRET_KEY='dev',
-        DATABASE=os.path.join(app.instance_path, 'flaskr.sqlite'),
-    )
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 
     if test_config is None:
         # load the instance config, if it exists, when not testing
@@ -30,8 +28,6 @@ def create_app(test_config=None):
     def hello():
         return 'Hello, World!'
 
-    # pjdir = os.path.abspath(os.path.dirname(__file__))
-    # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(pjdir, '../instance/data.sqlite')
     from . import db
     db.init_app(app)
 
@@ -40,9 +36,12 @@ def create_app(test_config=None):
 
     Argon2(app)
 
+    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')
+
+    JWTManager(app)
+
     # from . import blog
     # app.register_blueprint(blog.bp)
     # app.add_url_rule('/', endpoint='index')
 
     return app
-
