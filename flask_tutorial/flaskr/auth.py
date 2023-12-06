@@ -10,15 +10,19 @@ from flaskr.models.user import User
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, JWTManager
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
+from flask_cors import CORS, cross_origin
 
-bp = Blueprint('auth', __name__, url_prefix='/auth')
+bp = Blueprint('auth', __name__, url_prefix='/api/v1')
+
+CORS(bp, resources={r"/*": {"origins": "*"}})
 
 
 @bp.route('/register', methods=('GET', 'POST'))
 def register():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+        data = request.get_json()
+        username = data['username']
+        password = data['password']
         db = get_db()
         error = None
 
@@ -48,8 +52,9 @@ def register():
 @bp.route('/login', methods=('GET', 'POST'))
 def login():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+        data = request.get_json()
+        username = data['username']
+        password = data['password']
         db = get_db()
         error = None
         stmt = select(User).where(User.username == username)
@@ -65,7 +70,23 @@ def login():
             session.clear()
             session['user_id'] = user.id
             access_token = create_access_token(identity=username)
-            return jsonify(access_token="Bearer " + access_token)
+            # interface
+            # LoginResData
+            # {
+            #     code: number;
+            # msg: string;
+            # data: AuthData;
+            # }
+            response_data = jsonify({
+                'code': 200,
+                'msg': 'success',
+                'data': {
+                    'token': access_token,
+                    'type': 'Bearer'
+                }
+            })
+            print(response_data)
+            return response_data, 200
 
         flash(error)
 

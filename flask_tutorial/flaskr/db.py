@@ -27,7 +27,7 @@ def init_db():
     """Clear the existing data and create new tables."""
     import flaskr.models.user
     import flaskr.models.post
-    # Base.metadata.drop_all(bind=engine)
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
 
@@ -35,6 +35,18 @@ def init_db():
 def init_db_command():
     """Clear the existing data and create new tables."""
     init_db()
+    """And then create users and posts."""
+    import flaskr.models.user
+    import flaskr.models.post
+    """generate a user and a post"""
+    from flaskr.models.user import User
+    from flaskr.models.post import Post
+    from flask_argon2 import Argon2
+    from sqlalchemy import select
+    db = get_db()
+    u = User(username='admin', password=Argon2().generate_password_hash('admin'))
+    db.add(u)
+    db.commit()
     click.echo('Initialized the database.')
 
 
