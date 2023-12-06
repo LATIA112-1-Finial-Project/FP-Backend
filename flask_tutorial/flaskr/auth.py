@@ -21,7 +21,7 @@ CORS(bp, resources={r"/*": {"origins": "*"}})
 def register():
     if request.method == 'POST':
         data = request.get_json()
-        username = data['username']
+        username = data['email']
         password = data['password']
         db = get_db()
         error = None
@@ -38,15 +38,23 @@ def register():
                 db.commit()
             # username is already registered
             except IntegrityError as e:
-                error = 'User {} is already registered.'.format(username)
+                return jsonify({
+                    'code': 200,
+                    'msg': 'duplicate',
+                    'data': 'Register failed'
+                }), 200
             else:
-                response = jsonify({'message': 'User created successfully.'})
-                response.status_code = 201
-                return response
-
-        flash(error)
-
-    return jsonify({'message': 'Register failed.'}), 401
+                response_data = jsonify({
+                    'code': 201,
+                    'msg': 'success',
+                    'data': ''
+                })
+                return response_data, 201
+    return jsonify({
+        'code': 200,
+        'msg': 'error',
+        'data': 'Register failed'
+    }), 200
 
 
 @bp.route('/login', methods=('GET', 'POST'))
@@ -58,25 +66,15 @@ def login():
         db = get_db()
         error = None
         stmt = select(User).where(User.username == username)
-        print(stmt)
         user = db.scalar(stmt)
-        print(user.username)
         if user is None:
             error = 'Incorrect username.'
         elif not Argon2().check_password_hash(user.password, password):
             error = 'Incorrect password.'
-
         if error is None:
             session.clear()
             session['user_id'] = user.id
             access_token = create_access_token(identity=username)
-            # interface
-            # LoginResData
-            # {
-            #     code: number;
-            # msg: string;
-            # data: AuthData;
-            # }
             response_data = jsonify({
                 'code': 200,
                 'msg': 'success',
@@ -85,12 +83,13 @@ def login():
                     'type': 'Bearer'
                 }
             })
-            print(response_data)
             return response_data, 200
-
         flash(error)
-
-    return jsonify({'message': 'Login failed.'}), 401
+    return jsonify({
+        'code': 200,
+        'msg': 'error',
+        'data': 'Login failed'
+    }), 200
 
 
 @bp.route('/protected', methods=["GET"])
@@ -104,7 +103,6 @@ def protected():
 @bp.before_app_request
 def load_logged_in_user():
     user_id = session.get('user_id')
-
     if user_id is None:
         g.user = None
     else:
