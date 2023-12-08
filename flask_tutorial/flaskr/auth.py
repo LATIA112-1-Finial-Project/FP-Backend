@@ -13,6 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from flask_cors import CORS, cross_origin
 from flask_mail import Mail, Message
 from flaskr.utils import send_email
+from flask import current_app
 
 bp = Blueprint('auth', __name__, url_prefix='/api/v1')
 
@@ -43,11 +44,10 @@ def confirm_email(token):
         user.is_confirmed = True
         user.confirmed_on = datetime.datetime.now()
         db.commit()
-        return jsonify({
-            'code': 200,
-            'msg': 'success',
-            'data': 'You have confirmed your account. Thanks!'
-        }), 200
+        app = current_app.config['FRONTEND_URL']
+        confirm_success_url = app + '/login'
+        return render_template("accounts/confirm_success.html", redirect_url=confirm_success_url)
+
 
 
 @bp.route('/register', methods=['POST'])
@@ -122,7 +122,7 @@ def login():
     if user.is_confirmed is False:
         return jsonify({
             'code': 401,
-            'msg': 'error',
+            'msg': 'not_confirmed',
             'data': 'Please confirm your account.'
         }), 401
     session.clear()
