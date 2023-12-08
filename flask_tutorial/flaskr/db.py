@@ -44,7 +44,9 @@ def init_db_command():
     from flask_argon2 import Argon2
     from sqlalchemy import select
     db = get_db()
-    u = User(username='admin7122', email='admin@latia.com', password=Argon2().generate_password_hash('admin'))
+    u = User(username='admin', email='admin@latia.com',
+             password=Argon2().generate_password_hash('admin'),
+             is_confirmed=True, confirmed_on='2021-01-01 00:00:00')
     db.add(u)
     db.commit()
     click.echo('Initialized the database.')

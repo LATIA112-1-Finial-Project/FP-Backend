@@ -3,7 +3,10 @@ import os
 from flask import Flask
 from flask_argon2 import Argon2
 from flask_jwt_extended import JWTManager
+from flask_mail import Mail
 from flask_cors import CORS
+
+mail = Mail()
 
 
 def create_app(test_config=None):
@@ -28,6 +31,13 @@ def create_app(test_config=None):
     def hello():
         return 'Hello, World!'
 
+    app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+    app.config['MAIL_PORT'] = 465
+    app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+    app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+    app.config['MAIL_USE_TLS'] = False
+    app.config['MAIL_USE_SSL'] = True
+
     from . import db
     db.init_app(app)
 
@@ -36,6 +46,9 @@ def create_app(test_config=None):
 
     from .api import user_setting
     app.register_blueprint(user_setting.bp_uni)
+
+    mail.init_app(app)
+    app.config['MAIL'] = mail
 
     Argon2(app)
 

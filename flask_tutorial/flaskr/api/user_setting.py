@@ -39,7 +39,6 @@ def user_info():
                 'email': user.email
             }
         })
-        print(response_data.data)
         return response_data, 200
     return make_response(jsonify({
         'code': 400,
