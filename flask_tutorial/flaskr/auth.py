@@ -17,79 +17,74 @@ bp = Blueprint('auth', __name__, url_prefix='/api/v1')
 CORS(bp, resources={r"/*": {"origins": "*"}})
 
 
-@bp.route('/register', methods=('GET', 'POST'))
+@bp.route('/register', methods=['POST'])
 def register():
-    if request.method == 'POST':
-        data = request.get_json()
-        username = data['email']
-        password = data['password']
-        db = get_db()
-        error = None
+    data = request.get_json()
+    username = data['username']
+    email = data['email']
+    password = data['password']
+    db = get_db()
+    error = None
 
-        if not username:
-            error = 'Username is required.'
-        elif not password:
-            error = 'Password is required.'
+    if not username:
+        error = 'Username is required.'
+    elif not email:
+        error = 'Email is required.'
+    elif not password:
+        error = 'Password is required.'
 
-        if error is None:
-            try:
-                u = User(username=username, password=Argon2().generate_password_hash(password))
-                db.add(u)
-                db.commit()
-            # username is already registered
-            except IntegrityError as e:
-                return jsonify({
-                    'code': 200,
-                    'msg': 'duplicate',
-                    'data': 'Register failed'
-                }), 200
-            else:
-                response_data = jsonify({
-                    'code': 201,
-                    'msg': 'success',
-                    'data': ''
-                })
-                return response_data, 201
-    return jsonify({
-        'code': 200,
-        'msg': 'error',
-        'data': 'Register failed'
-    }), 200
-
-
-@bp.route('/login', methods=('GET', 'POST'))
-def login():
-    if request.method == 'POST':
-        data = request.get_json()
-        username = data['username']
-        password = data['password']
-        db = get_db()
-        error = None
-        stmt = select(User).where(User.username == username)
-        user = db.scalar(stmt)
-        if user is None:
-            error = 'Incorrect username.'
-        elif not Argon2().check_password_hash(user.password, password):
-            error = 'Incorrect password.'
-        if error is None:
-            session.clear()
-            session['user_id'] = user.id
-            access_token = create_access_token(identity=username)
-            response_data = jsonify({
+    if error is None:
+        try:
+            u = User(username=username, email=email, password=Argon2().generate_password_hash(password))
+            db.add(u)
+            db.commit()
+        # email is already registered
+        except IntegrityError as e:
+            return jsonify({
                 'code': 200,
+                'msg': 'duplicate',
+                'data': 'Register failed'
+            }), 200
+        else:
+            response_data = jsonify({
+                'code': 201,
                 'msg': 'success',
-                'data': {
-                    'token': access_token,
-                    'type': 'Bearer'
-                }
+                'data': ''
             })
-            return response_data, 200
-        flash(error)
+            return response_data, 201
+
+
+@bp.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    email = data['email']
+    password = data['password']
+    db = get_db()
+    error = None
+    stmt = select(User).where(User.email == email)
+    user = db.scalar(stmt)
+    if user is None:
+        error = 'Incorrect email.'
+    elif not Argon2().check_password_hash(user.password, password):
+        error = 'Incorrect password.'
+    if error is None:
+        session.clear()
+        session['user_id'] = user.id
+        access_token = create_access_token(identity=email)
+        response_data = jsonify({
+            'code': 200,
+            'msg': 'success',
+            'data': {
+                'token': access_token,
+                'type': 'Bearer'
+            }
+        })
+        return response_data, 200
     return jsonify({
-        'code': 200,
+        'code': 401,
         'msg': 'error',
         'data': 'Login failed'
-    }), 200
+    }), 401
 
 
 @bp.route('/protected', methods=["GET"])

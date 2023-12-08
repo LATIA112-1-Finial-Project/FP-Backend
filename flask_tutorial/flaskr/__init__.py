@@ -34,6 +34,9 @@ def create_app(test_config=None):
     from . import auth
     app.register_blueprint(auth.bp)
 
+    from .api import user_setting
+    app.register_blueprint(user_setting.bp_uni)
+
     Argon2(app)
 
     app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')

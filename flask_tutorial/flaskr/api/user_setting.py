@@ -10,17 +10,39 @@ from flaskr.models.user import User
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, JWTManager
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
+from flask_cors import CORS, cross_origin
 
-bp_uni = Blueprint('bp_uni', __name__, url_prefix='/auth')
+bp_uni = Blueprint('bp_uni', __name__, url_prefix='/api/v1/auth')
+
+CORS(bp_uni, resources={r"/*": {"origins": "*"}})
 
 
-@bp_uni.route('/user_infor', methods=('GET', 'POST'))
+@bp_uni.route('/user_info', methods=('GET', 'POST'))
 @jwt_required()
-def user_infor():
+def user_info():
     if request.method == 'GET':
-        username = get_jwt_identity()
+        email = get_jwt_identity()
         db = get_db()
-        stmt = select(User).where(User.username == username)
+        stmt = select(User).where(User.email == email)
         user = db.scalar(stmt)
-        return jsonify({'username': 'Hi, ' + user.username})
-    return jsonify({'message': 'User information failed.'}), 401
+        if user is None:
+            return make_response(jsonify({
+                'code': 400,
+                'msg': 'error',
+                'data': 'Bad request'
+            }), 400)
+        response_data = jsonify({
+            'code': 200,
+            'msg': 'success',
+            'data': {
+                'username': user.username,
+                'email': user.email
+            }
+        })
+        print(response_data.data)
+        return response_data, 200
+    return make_response(jsonify({
+        'code': 400,
+        'msg': 'error',
+        'data': 'Bad request'
+    }), 400)

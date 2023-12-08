@@ -8,11 +8,13 @@ class User(Base):
     __table_args__ = {'extend_existing': True}
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     username: Mapped[str] = mapped_column(unique=True, nullable=True)
+    email: Mapped[str] = mapped_column(unique=True, nullable=True)
     password: Mapped[str] = mapped_column(nullable=True)
 
-    def __init__(self, username=None, password=None):
+    def __init__(self, username=None, email=None, password=None):
         self.username = username
+        self.email = email
         self.password = password
 
     def __repr__(self):
-        return f'<User(id={self.id}, username={self.username!r}, password={self.password!r})>'
+        return f'<User(id={self.id},username={self.username!r} , email={self.email!r}, password={self.password!r})>'
