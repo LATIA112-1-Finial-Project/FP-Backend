@@ -161,14 +161,24 @@ def load_logged_in_user():
 @bp.route('/logout')
 def logout():
     session.clear()
-    return jsonify({'message': 'Logout successfully, GoodBye!'}), 200
+    response_data = jsonify({
+        'code': 200,
+        'msg': 'success',
+        'data': 'Logout successfully, GoodBye!'
+    })
+    return response_data, 200
 
 
 def login_required(view):
     @functools.wraps(view)
     def wrapped_view(**kwargs):
         if g.user is None:
-            return jsonify({'error': 'Authentication required'}), 401
+            response_data = jsonify({
+                'code': 401,
+                'msg': 'error',
+                'data': 'Authentication required!'
+            })
+            return response_data, 401
 
         return view(**kwargs)
 

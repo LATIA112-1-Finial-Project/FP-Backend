@@ -51,6 +51,9 @@ def create_app(test_config=None):
     from .api import user_setting
     app.register_blueprint(user_setting.bp_uni)
 
+    from .api import arxiv
+    app.register_blueprint(arxiv.bp_arxiv)
+
     mail.init_app(app)
     app.config['MAIL'] = mail
 

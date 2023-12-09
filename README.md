@@ -30,3 +30,8 @@ $ source venv/bin/activate
 ```bash
 $ flask --app flaskr init-db
 ```
+
+## How to Run Backend
+
+1. `export SECRET_KEY=''`、`export JWT_SECRET_KEY=''`
+2. `flask --app flaskr run --debug --port 8080`
