@@ -1,0 +1,12 @@
+<p>
+    您的帳號已經啟動。 將在 3 秒後重新導向到登入頁面。
+</p>
+<br />
+<p>  如果頁面沒有自動跳轉，請下方連結繼續 </p>
+<p><a href="{{redirect_url}}">登入連結</a></p>
+
+<script>
+    setTimeout(function(){
+        window.location.href = '{{redirect_url}}';
+    }, 3000);
+</script>
