@@ -49,22 +49,30 @@ def confirm_email(token):
         return render_template("accounts/confirm_success.html", redirect_url=confirm_success_url)
 
 
-
 @bp.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
     username = data['username']
     email = data['email']
     password = data['password']
+    chk_password = data['chk_password']
+
+    if username == '' or email == '' or password == '' or chk_password == '':
+        return jsonify({
+            'code': 400,
+            'msg': 'error',
+            'data': 'Required missing'
+        }), 400
+
     db = get_db()
     error = None
 
-    if not username:
-        error = 'Username is required.'
-    elif not email:
-        error = 'Email is required.'
-    elif not password:
-        error = 'Password is required.'
+    if password != chk_password:
+        return jsonify({
+            'code': 400,
+            'msg': 'error',
+            'data': 'Not the same'
+        }), 400
 
     if error is None:
         try:
@@ -94,8 +102,8 @@ def register():
     if error is not None:
         return jsonify({
             'code': 400,
-            'msg': 'Required fields are missing',
-            'data': ''
+            'msg': 'error',
+            'data': 'Required fields are missing or password and confirm password are not the same.'
         }), 400
 
 
@@ -111,19 +119,31 @@ def login():
         return jsonify({
             'code': 401,
             'msg': 'error',
-            'data': 'Login failed, please check your email and password, or check the account exist or not.'
+            'data': {
+                'token': '',
+                'type': '',
+                'detail': 'Login failed, please check your email and password, or check the account exist or not.'
+            }
         }), 401
     elif not Argon2().check_password_hash(user.password, password):
         return jsonify({
             'code': 401,
             'msg': 'error',
-            'data': 'Login failed, please check your email and password, or check the account exist or not.'
+            'data': {
+                'token': '',
+                'type': '',
+                'detail': 'Login failed, please check your email and password, or check the account exist or not.'
+            }
         }), 401
     if user.is_confirmed is False:
         return jsonify({
             'code': 401,
             'msg': 'not_confirmed',
-            'data': 'Please confirm your account.'
+            'data': {
+                'token': '',
+                'type': '',
+                'detail': 'Please confirm your account.'
+            }
         }), 401
     session.clear()
     session['user_id'] = user.id
@@ -133,7 +153,8 @@ def login():
         'msg': 'success',
         'data': {
             'token': access_token,
-            'type': 'Bearer'
+            'type': 'Bearer',
+            'detail': 'Login successfully, Welcome!'
         }
     })
     return response_data, 200
