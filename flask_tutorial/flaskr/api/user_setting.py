@@ -56,6 +56,25 @@ def reset_password():
     email = get_jwt_identity()
     old_password = data['old_password']
     new_password = data['new_password']
+    chk_new_password = data['chk_new_password']
+    if old_password == '' or new_password == '' or chk_new_password == '':
+        return make_response(jsonify({
+            'code': 400,
+            'msg': 'error',
+            'data': 'Required missing'
+        }), 400)
+    if new_password != chk_new_password:
+        return make_response(jsonify({
+            'code': 400,
+            'msg': 'error',
+            'data': 'Not the same'
+        }), 400)
+    if new_password == old_password:
+        return make_response(jsonify({
+            'code': 400,
+            'msg': 'error',
+            'data': 'New same as old'
+        }), 400)
     db = get_db()
     stmt = select(User).where(User.email == email)
     user = db.scalar(stmt)
@@ -95,3 +114,44 @@ def reset_password():
                     'msg': 'success',
                     'data': 'Reset password successfully, please check your email'
                 }), 200)
+
+
+# reset username api
+@bp_uni.route('/reset_username', methods=['POST'])
+@jwt_required()
+def reset_username():
+    data = request.get_json()
+    email = get_jwt_identity()
+    old_username = data['old_username']
+    new_username = data['new_username']
+    if old_username == '' or new_username == '':
+        return make_response(jsonify({
+            'code': 400,
+            'msg': 'error',
+            'data': 'Required missing'
+        }), 400)
+    if old_username == new_username:
+        return make_response(jsonify({
+            'code': 400,
+            'msg': 'error',
+            'data': 'New same as old'
+        }), 400)
+    db = get_db()
+    stmt = select(User).where(User.email == email)
+    user = db.scalar(stmt)
+    if user is None:
+        return make_response(jsonify({
+            'code': 400,
+            'msg': 'error',
+            'data': 'User not found'
+        }), 400)
+    else:
+        # reset username to new_username
+        user.username = new_username
+        # commit to db
+        db.commit()
+        return make_response(jsonify({
+            'code': 200,
+            'msg': 'success',
+            'data': 'Reset username successfully'
+        }), 200)

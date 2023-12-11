@@ -49,7 +49,6 @@ def confirm_email(token):
         return render_template("accounts/confirm_success.html", redirect_url=confirm_success_url)
 
 
-
 @bp.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
@@ -57,34 +56,18 @@ def register():
     email = data['email']
     password = data['password']
     chk_password = data['chk_password']
+
+    if username == '' or email == '' or password == '' or chk_password == '':
+        return jsonify({
+            'code': 400,
+            'msg': 'error',
+            'data': 'Required missing'
+        }), 400
+
     db = get_db()
     error = None
 
-    if not username:
-        return jsonify({
-            'code': 400,
-            'msg': 'error',
-            'data': 'Required missing'
-        }), 400
-    elif not email:
-        return jsonify({
-            'code': 400,
-            'msg': 'error',
-            'data': 'Required missing'
-        }), 400
-    elif not password:
-        return jsonify({
-            'code': 400,
-            'msg': 'error',
-            'data': 'Required missing'
-        }), 400
-    elif not chk_password:
-        return jsonify({
-            'code': 400,
-            'msg': 'error',
-            'data': 'Required missing'
-        }), 400
-    elif password != chk_password:
+    if password != chk_password:
         return jsonify({
             'code': 400,
             'msg': 'error',
