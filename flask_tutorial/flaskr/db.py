@@ -29,6 +29,10 @@ def init_db():
     import flaskr.models.post
     import flaskr.models.Arxiv.field
     import flaskr.models.Arxiv.id_name
+    import flaskr.models.TopUni.academic_reputation
+    import flaskr.models.TopUni.employer_reputation
+    import flaskr.models.TopUni.overall
+    import flaskr.models.TopUni.university_id_name
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
@@ -84,6 +88,69 @@ def init_db_command():
                                cross_list_count=row[3], total_article_count=row[4])
             db.add(u_a_f)
             db.commit()
+    import flaskr.models.TopUni.academic_reputation
+    import flaskr.models.TopUni.employer_reputation
+    import flaskr.models.TopUni.overall
+    import flaskr.models.TopUni.university_id_name
+    """
+    push data into db from flask_tutorial/generate_table/Top_University/DB_Data/academic_reputation.csv
+    push data into db from flask_tutorial/generate_table/Top_University/DB_Data/employer_reputation.csv
+    push data into db from flask_tutorial/generate_table/Top_University/DB_Data/overall.csv
+    push data into db from flask_tutorial/generate_table/Top_University/DB_Data/university.csv
+    """
+    from flaskr.models.TopUni.academic_reputation import Academic
+    from flaskr.models.TopUni.employer_reputation import Employer
+    from flaskr.models.TopUni.overall import Overall
+    from flaskr.models.TopUni.university_id_name import University
+    import csv
+    first_time = True
+    with open(os.path.join(pjdir, 'generate_table/Top_University/DB_Data/university.csv'), 'r') as f:
+        reader = csv.reader(f, delimiter=',')
+        for row in reader:
+            if first_time:
+                first_time = False
+                continue
+            db = get_db()
+            u_u_id_name = University(name=row[1])
+            db.add(u_u_id_name)
+            db.commit()
+
+    first_time = True
+    with open(os.path.join(pjdir, 'generate_table/Top_University/DB_Data/academic_reputation.csv'), 'r') as f:
+        reader = csv.reader(f, delimiter=',')
+        for row in reader:
+            if first_time:
+                first_time = False
+                continue
+            db = get_db()
+            u_a = Academic(university_id=row[0], ar_rank=row[1], ar_score=row[2], ar_year=row[3])
+            db.add(u_a)
+            db.commit()
+
+    first_time = True
+    with open(os.path.join(pjdir, 'generate_table/Top_University/DB_Data/employer_reputation.csv'), 'r') as f:
+        reader = csv.reader(f, delimiter=',')
+        for row in reader:
+            if first_time:
+                first_time = False
+                continue
+            db = get_db()
+            u_e = Employer(university_id=row[0], er_rank=row[1], er_score=row[2], er_year=row[3])
+            db.add(u_e)
+            db.commit()
+
+    first_time = True
+    with open(os.path.join(pjdir, 'generate_table/Top_University/DB_Data/overall.csv'), 'r') as f:
+        reader = csv.reader(f, delimiter=',')
+        for row in reader:
+            if first_time:
+                first_time = False
+                continue
+            db = get_db()
+            u_o = Overall(university_id=row[0], o_rank=row[1], o_score=row[2], o_year=row[3])
+            db.add(u_o)
+            db.commit()
+
     click.echo('Initialized the database.')
 
 

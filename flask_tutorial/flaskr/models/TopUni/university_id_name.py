@@ -4,7 +4,7 @@ from flaskr.db import Base
 
 
 class University(Base):
-    __tablename__ = 'universities'
+    __tablename__ = 'university_id_name'
     __table_args__ = {'extend_existing': True}
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(unique=True, nullable=True)
