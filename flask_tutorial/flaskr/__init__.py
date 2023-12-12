@@ -4,6 +4,7 @@ from flask import Flask
 from flask_argon2 import Argon2
 from flask_jwt_extended import JWTManager
 from flask_mail import Mail
+from datetime import timedelta
 from flask_cors import CORS
 
 mail = Mail()
@@ -60,7 +61,7 @@ def create_app(test_config=None):
     Argon2(app)
 
     app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY')
-
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=1)
     JWTManager(app)
 
     # from . import blog

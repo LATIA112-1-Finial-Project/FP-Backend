@@ -160,6 +160,98 @@ def login():
     return response_data, 200
 
 
+# forget password api, send token link to user's email,
+# direct to reset password page (FRONTEND_URL + ?token=token), token will expire in 10 minutes
+# and reset password
+@bp.route('/forget_password', methods=['POST'])
+def forget_password():
+    data = request.get_json()
+    email = data['email']
+    db = get_db()
+    stmt = select(User).where(User.email == email)
+    user = db.scalar(stmt)
+    if user is None:
+        return make_response(jsonify({
+            'code': 400,
+            'msg': 'error',
+            'data': 'Email not found'
+        }), 400)
+    else:
+        token = user.generate_token(user.email)
+        forget_password_url = current_app.config['FRONTEND_URL'] + '/resetPassword?token=' + token
+        html = render_template("accounts/forget_password.html", username=user.username, confirm_url=forget_password_url)
+        send_email(user.email, "忘記密碼確認信", html)
+        return make_response(jsonify({
+            'code': 200,
+            'msg': 'success',
+            'data': 'Send forget password successfully, please check your email'
+        }), 200)
+
+
+# confirm token and reset password (forget password confirm api)
+@bp.route('/forget_password_confirm', methods=['POST'])
+def forget_password_confirm():
+    data = request.get_json()
+    token = data['token']
+    password = data['password']
+    chk_password = data['chk_password']
+    if password == '' or chk_password == '':
+        return make_response(jsonify({
+            'code': 400,
+            'msg': 'error',
+            'data': 'Required missing'
+        }), 400)
+    if password != chk_password:
+        return make_response(jsonify({
+            'code': 400,
+            'msg': 'error',
+            'data': 'Not the same'
+        }), 400)
+    try:
+        email = User.confirm_token(token)
+    except Exception as e:
+        print(e)
+        return make_response(jsonify({
+            'code': 401,
+            'msg': 'error',
+            'data': 'The confirmation link is invalid or has expired.'
+        }), 401)
+    db = get_db()
+    stmt = select(User).where(User.email == email)
+    user = db.scalar(stmt)
+    if user.password == Argon2().generate_password_hash(password):
+        return make_response(jsonify({
+            'code': 400,
+            'msg': 'error',
+            'data': 'New same as old'
+        }), 400)
+    if user is None:
+        return make_response(jsonify({
+            'code': 400,
+            'msg': 'error',
+            'data': 'User not found'
+        }), 400)
+    else:
+        try:
+            user.password = Argon2().generate_password_hash(password)
+            # commit to db
+            db.commit()
+            html = render_template("accounts/reset_password.html", username=user.username)
+            send_email(user.email, "密碼重設成功通知", html)
+        except IntegrityError as e:
+            return make_response(jsonify({
+                'code': 400,
+                'msg': 'error',
+                'data': 'Reset password failed'
+            }), 400)
+        else:
+            return make_response(jsonify({
+                'code': 200,
+                'msg': 'success',
+                'data': 'Reset password successfully, please check your email'
+            }), 200)
+
+
 @bp.route('/protected', methods=["GET"])
 @jwt_required()
 def protected():
