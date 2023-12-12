@@ -36,7 +36,7 @@ class User(Base):
         return s.dumps(email, salt=config_salt)
 
     @staticmethod
-    def confirm_token(token, expiration=3600):
+    def confirm_token(token, expiration=360):
         config_secret_key = os.environ.get('SECRET_KEY')
         config_salt = os.environ.get('SECURITY_PASSWORD_SALT')
         serializer = URLSafeTimedSerializer(config_secret_key)
