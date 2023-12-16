@@ -49,6 +49,8 @@ def university_attr(university_id):
     university_name = db.query(University.name).filter(University.id == id_to_query).first()
     university_name = university_name[0]
 
+    year_list = [2021, 2022, 2023, 2024]
+
     # Get academic reputation information
     academic_reputation_info_rank_list = []
     academic_reputation_info_score_list = []
@@ -59,6 +61,24 @@ def university_attr(university_id):
         academic_reputation_info_rank_list.append(academic_reputation_info.ar_rank)
         academic_reputation_info_score_list.append(academic_reputation_info.ar_score)
         academic_reputation_info_year_list.append(academic_reputation_info.ar_year)
+
+    for year in year_list:
+        if year not in academic_reputation_info_year_list:
+            academic_reputation_info_rank_list.append('-')
+            academic_reputation_info_score_list.append('-')
+            academic_reputation_info_year_list.append(year)
+    # rank list, score list, sort by year, it mean that year must be sorted like [2021, 2022, 2023, 2024]
+
+    for i in range(len(academic_reputation_info_year_list)):
+        for j in range(i + 1, len(academic_reputation_info_year_list)):
+            if academic_reputation_info_year_list[i] > academic_reputation_info_year_list[j]:
+                academic_reputation_info_year_list[i], academic_reputation_info_year_list[j] = \
+                academic_reputation_info_year_list[j], academic_reputation_info_year_list[i]
+                academic_reputation_info_rank_list[i], academic_reputation_info_rank_list[j] = \
+                academic_reputation_info_rank_list[j], academic_reputation_info_rank_list[i]
+                academic_reputation_info_score_list[i], academic_reputation_info_score_list[j] = \
+                academic_reputation_info_score_list[j], academic_reputation_info_score_list[i]
+    print(academic_reputation_info_rank_list)
 
     # Get employer reputation information
     employer_reputation_info_rank_list = []
@@ -71,6 +91,22 @@ def university_attr(university_id):
         employer_reputation_info_score_list.append(employer_reputation_info.er_score)
         employer_reputation_info_year_list.append(employer_reputation_info.er_year)
 
+    for year in year_list:
+        if year not in employer_reputation_info_year_list:
+            employer_reputation_info_rank_list.append('-')
+            employer_reputation_info_score_list.append('-')
+            employer_reputation_info_year_list.append(year)
+    # rank list, score list, sort by year, it mean that year must be sorted like [2021, 2022, 2023, 2024]
+    for i in range(len(employer_reputation_info_year_list)):
+        for j in range(i + 1, len(employer_reputation_info_year_list)):
+            if employer_reputation_info_year_list[i] > employer_reputation_info_year_list[j]:
+                employer_reputation_info_year_list[i], employer_reputation_info_year_list[j] = \
+                employer_reputation_info_year_list[j], employer_reputation_info_year_list[i]
+                employer_reputation_info_rank_list[i], employer_reputation_info_rank_list[j] = \
+                employer_reputation_info_rank_list[j], employer_reputation_info_rank_list[i]
+                employer_reputation_info_score_list[i], employer_reputation_info_score_list[j] = \
+                employer_reputation_info_score_list[j], employer_reputation_info_score_list[i]
+
     # Get overall information
     overall_info_rank_list = []
     overall_info_score_list = []
@@ -81,6 +117,23 @@ def university_attr(university_id):
         overall_info_rank_list.append(overall_info.o_rank)
         overall_info_score_list.append(overall_info.o_score)
         overall_info_year_list.append(overall_info.o_year)
+
+    for year in year_list:
+        if year not in overall_info_year_list:
+            overall_info_rank_list.append('-')
+            overall_info_score_list.append('-')
+            overall_info_year_list.append(year)
+
+    # rank list, score list, sort by year, it mean that year must be sorted like [2021, 2022, 2023, 2024]
+    for i in range(len(overall_info_year_list)):
+        for j in range(i + 1, len(overall_info_year_list)):
+            if overall_info_year_list[i] > overall_info_year_list[j]:
+                overall_info_year_list[i], overall_info_year_list[j] = overall_info_year_list[j], \
+                overall_info_year_list[i]
+                overall_info_rank_list[i], overall_info_rank_list[j] = overall_info_rank_list[j], \
+                overall_info_rank_list[i]
+                overall_info_score_list[i], overall_info_score_list[j] = overall_info_score_list[j], \
+                overall_info_score_list[i]
 
     response_data = jsonify({
         'code': 200,
@@ -99,4 +152,24 @@ def university_attr(university_id):
         }
     })
 
+    return response_data, 200
+
+
+# get all university id - name from universiy_id_name table
+@bp_top_uni.route('university', methods=['GET'])
+@jwt_required()
+def university():
+    db = get_db()
+    university_id_name_list = []
+    for university_id_name in db.query(University.id, University.name).all():
+        university_id_name_list.append({
+            'id': university_id_name.id,
+            'name': university_id_name.name
+        })
+
+    response_data = jsonify({
+        'code': 200,
+        'msg': 'success',
+        'data': university_id_name_list
+    })
     return response_data, 200
