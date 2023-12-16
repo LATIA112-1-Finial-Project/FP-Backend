@@ -100,3 +100,23 @@ def university_attr(university_id):
     })
 
     return response_data, 200
+
+
+# get all university id - name from universiy_id_name table
+@bp_top_uni.route('university', methods=['GET'])
+@jwt_required()
+def university():
+    db = get_db()
+    university_id_name_list = []
+    for university_id_name in db.query(University.id, University.name).all():
+        university_id_name_list.append({
+            'id': university_id_name.id,
+            'name': university_id_name.name
+        })
+
+    response_data = jsonify({
+        'code': 200,
+        'msg': 'success',
+        'data': university_id_name_list
+    })
+    return response_data, 200
