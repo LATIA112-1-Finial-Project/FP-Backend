@@ -20,44 +20,86 @@ bp = Blueprint('auth', __name__, url_prefix='/api/v1')
 CORS(bp, resources={r"/*": {"origins": "*"}})
 
 
-@bp.route("/confirm/<token>", methods=["GET"])
-def confirm_email(token):
-    try:
-        email = User.confirm_token(token)
-    except Exception as e:
-        print(e)
+@bp.route("/confirm_email", methods=["POST"])
+def confirm_email():
+
+    token = request.headers['Authorization']
+    email = User.confirm_token(token)
+
+    if email == "error: SignatureExpired('token expired')":
         return jsonify({
-            'code': 401,
-            'msg': 'error',
-            'data': 'The confirmation link is invalid or has expired.'
-        }), 401
-    db = get_db()
-    stmt = select(User).where(User.email == email)
-    user = db.scalar(stmt)
-    if user.is_confirmed:
-        return jsonify({
-            'code': 200,
-            'msg': 'success',
-            'data': 'Account already confirmed. Please login.'
-        }), 200
+            'code': 400,
+            'msg': 'expired',
+            'data': 'token expired'
+        }), 400
     else:
-        user.is_confirmed = True
-        user.confirmed_on = datetime.datetime.now()
-        db.commit()
-        app = current_app.config['FRONTEND_URL']
-        confirm_success_url = app + '/login'
-        return render_template("accounts/confirm_success.html", redirect_url=confirm_success_url)
+        data = request.get_json()
+        username = data['username']
+        password = data['password']
+        chk_password = data['chk_password']
+        if password == '' or chk_password == '':
+            return jsonify({
+                'code': 400,
+                'msg': 'error',
+                'data': 'Required missing'
+            }), 400
+        if password != chk_password:
+            return jsonify({
+                'code': 400,
+                'msg': 'error',
+                'data': 'Not the same'
+            }), 400
+        if username == '':
+            return jsonify({
+                'code': 400,
+                'msg': 'error',
+                'data': 'Required missing'
+            }), 400
+        # add user to db
+        db = get_db()
+        # check if username or email is already registered
+        stmt = select(User).where(User.email == email)
+        user = db.scalar(stmt)
+        if user is not None:
+            return jsonify({
+                'code': 400,
+                'msg': 'duplicate',
+                'data': 'Register failed'
+            }), 400
+        stmt = select(User).where(User.username == username)
+        user = db.scalar(stmt)
+        if user is not None:
+            return jsonify({
+                'code': 400,
+                'msg': 'duplicate',
+                'data': 'Register failed'
+            }), 400
+
+        u = User(username=username, email=email, password=Argon2().generate_password_hash(password),
+                 is_confirmed=True, confirmed_on=datetime.datetime.now())
+        try:
+            db.add(u)
+            db.commit()
+        except IntegrityError as e:
+            return jsonify({
+                'code': 400,
+                'msg': 'error',
+                'data': 'Register failed'
+            }), 400
+        response_data = jsonify({
+            'code': 201,
+            'msg': 'success',
+            'data': ''
+        })
+        return response_data, 201
 
 
 @bp.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
-    username = data['username']
     email = data['email']
-    password = data['password']
-    chk_password = data['chk_password']
 
-    if username == '' or email == '' or password == '' or chk_password == '':
+    if email == '':
         return jsonify({
             'code': 400,
             'msg': 'error',
@@ -67,43 +109,35 @@ def register():
     db = get_db()
     error = None
 
-    if password != chk_password:
-        return jsonify({
-            'code': 400,
-            'msg': 'error',
-            'data': 'Not the same'
-        }), 400
-
     if error is None:
-        try:
-            u = User(username=username, email=email, password=Argon2().generate_password_hash(password),
-                     is_confirmed=False, confirmed_on=datetime.datetime.now())
-            db.add(u)
-            db.commit()
-            token = u.generate_token(u.email)
-            confirm_url = url_for("auth.confirm_email", token=token, _external=True)
-            html = render_template("accounts/confirm_email.html", confirm_url=confirm_url)
-            subject = "LATIAFP - Please confirm your email"
-            send_email(u.email, subject, html)
-        # email is already registered
-        except IntegrityError as e:
+        # search db to check if email is already registered
+        stmt = select(User).where(User.email == email)
+        user = db.scalar(stmt)
+        # if email is registered, return error
+        if user is not None:
             return jsonify({
                 'code': 200,
                 'msg': 'duplicate',
                 'data': 'Register failed'
             }), 200
-        else:
-            response_data = jsonify({
-                'code': 201,
-                'msg': 'success',
-                'data': ''
-            })
-            return response_data, 201
+        # if email is not registered, create token and send email to user
+        u = User(email=email)
+        token = u.generate_token(u.email)
+        register_confirm_url = current_app.config['FRONTEND_URL'] + '/register/verify?token=' + token
+        html = render_template("accounts/confirm_email.html", confirm_url=register_confirm_url)
+        subject = "LATIAFP - Please confirm your email"
+        send_email(u.email, subject, html)
+        response_data = jsonify({
+            'code': 201,
+            'msg': 'success',
+            'data': ''
+        })
+        return response_data, 201
     if error is not None:
         return jsonify({
             'code': 400,
             'msg': 'error',
-            'data': 'Required fields are missing or password and confirm password are not the same.'
+            'data': 'Required missing'
         }), 400
 
 
@@ -192,7 +226,7 @@ def forget_password():
 @bp.route('/forget_password_confirm', methods=['POST'])
 def forget_password_confirm():
     data = request.get_json()
-    token = data['token']
+    token = request.headers['Authorization']
     password = data['password']
     chk_password = data['chk_password']
     if password == '' or chk_password == '':
@@ -207,49 +241,48 @@ def forget_password_confirm():
             'msg': 'error',
             'data': 'Not the same'
         }), 400)
-    try:
-        email = User.confirm_token(token)
-    except Exception as e:
-        print(e)
-        return make_response(jsonify({
-            'code': 401,
-            'msg': 'error',
-            'data': 'The confirmation link is invalid or has expired.'
-        }), 401)
-    db = get_db()
-    stmt = select(User).where(User.email == email)
-    user = db.scalar(stmt)
-    if user.password == Argon2().generate_password_hash(password):
-        return make_response(jsonify({
+    email = User.confirm_token(token)
+    if email == "error: SignatureExpired('token expired')":
+        return jsonify({
             'code': 400,
-            'msg': 'error',
-            'data': 'New same as old'
-        }), 400)
-    if user is None:
-        return make_response(jsonify({
-            'code': 400,
-            'msg': 'error',
-            'data': 'User not found'
-        }), 400)
+            'msg': 'expired',
+            'data': 'token expired'
+        }), 400
     else:
-        try:
-            user.password = Argon2().generate_password_hash(password)
-            # commit to db
-            db.commit()
-            html = render_template("accounts/reset_password.html", username=user.username)
-            send_email(user.email, "密碼重設成功通知", html)
-        except IntegrityError as e:
+        db = get_db()
+        stmt = select(User).where(User.email == email)
+        user = db.scalar(stmt)
+        if Argon2().check_password_hash(user.password, password):
             return make_response(jsonify({
                 'code': 400,
                 'msg': 'error',
-                'data': 'Reset password failed'
+                'data': 'New same as old'
+            }), 400)
+        if user is None:
+            return make_response(jsonify({
+                'code': 400,
+                'msg': 'error',
+                'data': 'User not found'
             }), 400)
         else:
-            return make_response(jsonify({
-                'code': 200,
-                'msg': 'success',
-                'data': 'Reset password successfully, please check your email'
-            }), 200)
+            try:
+                user.password = Argon2().generate_password_hash(password)
+                # commit to db
+                db.commit()
+                html = render_template("accounts/reset_password.html", username=user.username)
+                send_email(user.email, "密碼重設成功通知", html)
+            except IntegrityError as e:
+                return make_response(jsonify({
+                    'code': 400,
+                    'msg': 'error',
+                    'data': 'Reset password failed'
+                }), 400)
+            else:
+                return make_response(jsonify({
+                    'code': 200,
+                    'msg': 'success',
+                    'data': 'Reset password successfully, please check your email'
+                }), 200)
 
 
 @bp.route('/protected', methods=["GET"])

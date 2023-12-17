@@ -47,4 +47,4 @@ class User(Base):
             )
             return email
         except Exception as e:
-            return e
+            return "error: SignatureExpired('token expired')"

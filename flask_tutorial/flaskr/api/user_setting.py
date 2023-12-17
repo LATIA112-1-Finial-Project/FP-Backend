@@ -136,7 +136,18 @@ def reset_username():
             'msg': 'error',
             'data': 'New same as old'
         }), 400)
+
     db = get_db()
+
+    stmt_username = select(User).where(User.username == new_username)
+    user_username = db.scalar(stmt_username)
+    if user_username is not None:
+        return make_response(jsonify({
+            'code': 400,
+            'msg': 'error',
+            'data': 'Username already exist'
+        }), 400)
+
     stmt = select(User).where(User.email == email)
     user = db.scalar(stmt)
     if user is None:
