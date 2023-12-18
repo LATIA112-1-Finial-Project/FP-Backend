@@ -65,7 +65,7 @@ $ flask --app flaskr init-db
 $ flask --app flaskr run --debug --port 8080
 ```
 
-## Directory Tree
+## Directory Tree in flask_tutorial
 ```
 .
 ├── flaskr
