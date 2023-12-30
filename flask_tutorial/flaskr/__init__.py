@@ -58,6 +58,9 @@ def create_app(test_config=None):
     from .api import top_universities
     app.register_blueprint(top_universities.bp_top_uni)
 
+    from .api import post
+    app.register_blueprint(post.bp_posts)
+
     mail.init_app(app)
     app.config['MAIL'] = mail
 
