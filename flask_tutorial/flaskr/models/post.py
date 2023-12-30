@@ -56,10 +56,14 @@ class CommentLike(Base):
     __table_args__ = {'extend_existing': True}
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
+    comment_id: Mapped[int] = mapped_column(ForeignKey('comments.id'))
+    board_id: Mapped[int] = mapped_column(ForeignKey('boards.id'))
     created: Mapped[str] = mapped_column(DateTime, default=datetime.datetime.utcnow)
 
-    def __init__(self, user_id=None, created=None):
+    def __init__(self, user_id=None, comment_id=None, board_id=None, created=None):
         self.user_id = user_id
+        self.comment_id = comment_id
+        self.board_id = board_id
         self.created = created
 
 
@@ -69,21 +73,23 @@ class Comment(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     author_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     post_id: Mapped[int] = mapped_column(ForeignKey('posts.id'))
-    comment_like_id: Mapped[int] = mapped_column(ForeignKey('comment_likes.id'))
+    board_id: Mapped[int] = mapped_column(ForeignKey('boards.id'))
     created: Mapped[str] = mapped_column(DateTime, default=datetime.datetime.utcnow)
     body: Mapped[str] = mapped_column(String(1000), nullable=False)
     likes: Mapped[int] = mapped_column(default=0)
     author = relationship(User)
     post = relationship(Post)
+    board = relationship(Boards)
     comment_like = relationship(CommentLike)
 
-    def __init__(self, author_id=None, post_id=None, comment_like_id=None, created=None, body=None, likes=None):
+    def __init__(self, author_id=None, post_id=None, board_id=None, created=None, body=None, likes=None):
         self.author_id = author_id
         self.post_id = post_id
-        self.comment_like_id = comment_like_id
+        self.board_id = board_id
         self.created = created
         self.body = body
         self.likes = likes
 
     def __repr__(self):
-        return f'<Comment {self.body!r}>'
+        return f'<Body {self.body!r}>'
+
