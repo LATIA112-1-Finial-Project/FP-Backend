@@ -15,6 +15,7 @@ from flaskr.models.TopUni.academic_reputation import Academic
 from flaskr.models.TopUni.employer_reputation import Employer
 from flaskr.models.TopUni.overall import Overall
 from flaskr.models.TopUni.university_id_name import University
+from flaskr.models.TopUni.favorite_university_list import Favorite
 
 bp_top_uni = Blueprint('bp_top_uni', __name__, url_prefix='/api/v1/auth')
 
@@ -73,11 +74,11 @@ def university_attr(university_id):
         for j in range(i + 1, len(academic_reputation_info_year_list)):
             if academic_reputation_info_year_list[i] > academic_reputation_info_year_list[j]:
                 academic_reputation_info_year_list[i], academic_reputation_info_year_list[j] = \
-                academic_reputation_info_year_list[j], academic_reputation_info_year_list[i]
+                    academic_reputation_info_year_list[j], academic_reputation_info_year_list[i]
                 academic_reputation_info_rank_list[i], academic_reputation_info_rank_list[j] = \
-                academic_reputation_info_rank_list[j], academic_reputation_info_rank_list[i]
+                    academic_reputation_info_rank_list[j], academic_reputation_info_rank_list[i]
                 academic_reputation_info_score_list[i], academic_reputation_info_score_list[j] = \
-                academic_reputation_info_score_list[j], academic_reputation_info_score_list[i]
+                    academic_reputation_info_score_list[j], academic_reputation_info_score_list[i]
     print(academic_reputation_info_rank_list)
 
     # Get employer reputation information
@@ -101,11 +102,11 @@ def university_attr(university_id):
         for j in range(i + 1, len(employer_reputation_info_year_list)):
             if employer_reputation_info_year_list[i] > employer_reputation_info_year_list[j]:
                 employer_reputation_info_year_list[i], employer_reputation_info_year_list[j] = \
-                employer_reputation_info_year_list[j], employer_reputation_info_year_list[i]
+                    employer_reputation_info_year_list[j], employer_reputation_info_year_list[i]
                 employer_reputation_info_rank_list[i], employer_reputation_info_rank_list[j] = \
-                employer_reputation_info_rank_list[j], employer_reputation_info_rank_list[i]
+                    employer_reputation_info_rank_list[j], employer_reputation_info_rank_list[i]
                 employer_reputation_info_score_list[i], employer_reputation_info_score_list[j] = \
-                employer_reputation_info_score_list[j], employer_reputation_info_score_list[i]
+                    employer_reputation_info_score_list[j], employer_reputation_info_score_list[i]
 
     # Get overall information
     overall_info_rank_list = []
@@ -129,11 +130,11 @@ def university_attr(university_id):
         for j in range(i + 1, len(overall_info_year_list)):
             if overall_info_year_list[i] > overall_info_year_list[j]:
                 overall_info_year_list[i], overall_info_year_list[j] = overall_info_year_list[j], \
-                overall_info_year_list[i]
+                    overall_info_year_list[i]
                 overall_info_rank_list[i], overall_info_rank_list[j] = overall_info_rank_list[j], \
-                overall_info_rank_list[i]
+                    overall_info_rank_list[i]
                 overall_info_score_list[i], overall_info_score_list[j] = overall_info_score_list[j], \
-                overall_info_score_list[i]
+                    overall_info_score_list[i]
 
     response_data = jsonify({
         'code': 200,
@@ -171,5 +172,91 @@ def university():
         'code': 200,
         'msg': 'success',
         'data': university_id_name_list
+    })
+    return response_data, 200
+
+
+@bp_top_uni.route('/university/add_to_favorite', methods=['POST'])
+@jwt_required()
+def add_to_favorite():
+    data = request.get_json()
+    university_id_list = data['university_id_list']
+    if university_id_list is None:
+        return make_response(jsonify({
+            'code': 400,
+            'msg': 'error',
+            'data': 'Missing id in request body'
+        }), 400)
+    # if university_id_list is not list type, then return error
+    if not isinstance(university_id_list, list):
+        return make_response(jsonify({
+            'code': 400,
+            'msg': 'error',
+            'data': 'Bad request'
+        }), 400)
+    email = get_jwt_identity()
+    db = get_db()
+    stmt = select(User).where(User.email == email)
+    user = db.scalar(stmt)
+    if user is None:
+        return make_response(jsonify({
+            'code': 400,
+            'msg': 'error',
+            'data': 'Bad request'
+        }), 400)
+    user_id = user.id
+    # get all university id from favorite table
+    favorite_university_id_list = []
+    for favorite in db.query(Favorite).filter(Favorite.user_id == user_id).all():
+        favorite_university_id_list.append(favorite.university_id)
+    # if university id in favorite table, then pass
+    # if university id not in favorite table, then insert into favorite table
+    # if favorite_university_id_list not found university id, then delete from favorite table
+    for favorite_university_id in favorite_university_id_list:
+        if favorite_university_id not in university_id_list:
+            db.query(Favorite).filter(Favorite.user_id == user_id,
+                                      Favorite.university_id == favorite_university_id).delete()
+            db.commit()
+    for university_id in university_id_list:
+        if university_id not in favorite_university_id_list:
+            # check if university id exist in university table
+            stmt = select(University).where(University.id == university_id)
+            is_university = db.scalar(stmt)
+            if is_university is None:
+                # skip
+                continue
+            favorite = Favorite(user_id=user_id, university_id=university_id)
+            db.add(favorite)
+            db.commit()
+
+    response_data = jsonify({
+        'code': 200,
+        'msg': 'success',
+        'data': 'success'
+    })
+    return response_data, 200
+
+
+@bp_top_uni.route('/university/get_favorite', methods=['GET'])
+@jwt_required()
+def get_favorite():
+    email = get_jwt_identity()
+    db = get_db()
+    stmt = select(User).where(User.email == email)
+    user = db.scalar(stmt)
+    if user is None:
+        return make_response(jsonify({
+            'code': 400,
+            'msg': 'error',
+            'data': 'Bad request'
+        }), 400)
+    user_id = user.id
+    favorite_university_list = []
+    for favorite in db.query(Favorite).filter(Favorite.user_id == user_id).all():
+        favorite_university_list.append(favorite.university_id)
+    response_data = jsonify({
+        'code': 200,
+        'msg': 'success',
+        'data': favorite_university_list
     })
     return response_data, 200

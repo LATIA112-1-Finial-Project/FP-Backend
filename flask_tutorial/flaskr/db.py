@@ -34,6 +34,8 @@ def init_db():
     import flaskr.models.TopUni.overall
     import flaskr.models.TopUni.university_id_name
     import flaskr.models.boards
+    import flaskr.models.TopUni.favorite_university_list
+    import flaskr.models.Arxiv.favorite_arxiv_list
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
