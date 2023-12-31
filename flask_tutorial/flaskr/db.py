@@ -33,6 +33,9 @@ def init_db():
     import flaskr.models.TopUni.employer_reputation
     import flaskr.models.TopUni.overall
     import flaskr.models.TopUni.university_id_name
+    import flaskr.models.boards
+    import flaskr.models.TopUni.favorite_university_list
+    import flaskr.models.Arxiv.favorite_arxiv_list
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
@@ -51,6 +54,10 @@ def init_db_command():
     from sqlalchemy import select
     db = get_db()
     u = User(username='admin', email='admin@latia.com',
+             password=Argon2().generate_password_hash('admin'),
+             is_confirmed=True, confirmed_on='2021-01-01 00:00:00')
+    db.add(u)
+    u = User(username='admin7122', email='admin7122@latia.com',
              password=Argon2().generate_password_hash('admin'),
              is_confirmed=True, confirmed_on='2021-01-01 00:00:00')
     db.add(u)
@@ -151,6 +158,18 @@ def init_db_command():
             db.add(u_o)
             db.commit()
 
+    import flaskr.models.boards
+    """
+    push default board name into db
+    """
+    from flaskr.models.boards import Boards
+    db = get_db()
+    u_b_arxiv = Boards(board_name='Arxiv')
+    db.add(u_b_arxiv)
+    db.commit()
+    u_b_top_uni = Boards(board_name='Top University')
+    db.add(u_b_top_uni)
+    db.commit()
     click.echo('Initialized the database.')
 
 
