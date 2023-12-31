@@ -28,13 +28,13 @@ def new_posts():
     body = request.json.get('body')
     board_id = int(request.json.get('board_id'))
     # board_id = 1  -> arxiv, 2 -> top universities
-    if title is None:
+    if title == '':
         return make_response(jsonify({
             'code': 400,
             'msg': 'error',
             'data': 'Missing title in request body'
         }), 400)
-    if body is None:
+    if body == '':
         return make_response(jsonify({
             'code': 400,
             'msg': 'error',
@@ -248,7 +248,6 @@ def get_like_post(board_id, post_id):
     }), 200)
 
 
-
 @bp_posts.route('/posts/<int:board_id>', methods=['GET'])
 @jwt_required()
 def get_all_posts(board_id):
@@ -294,7 +293,6 @@ def get_all_posts(board_id):
     }), 200)
 
 
-
 @bp_posts.route('/comments', methods=['POST'])
 @jwt_required()
 def new_comments():
@@ -303,7 +301,7 @@ def new_comments():
     board_id = int(request.json.get('board_id'))
     post_id = int(request.json.get('post_id'))
     # board_id = 1  -> arxiv, 2 -> top universities
-    if body is None:
+    if body == '':
         return make_response(jsonify({
             'code': 400,
             'msg': 'error',
@@ -383,8 +381,9 @@ def get_all_comments(board_id):
             'data': 'board_id not exist'
         }), 400)
     db = get_db()
-    comments_info = db.query(Comment.id, Comment.body, Comment.created, Comment.author_id, Comment.likes,
-                             User.username).join(User, Comment.author_id == User.id).filter(Comment.board_id == board_id).all()
+    comments_info = db.query(Comment.id, Comment.post_id, Comment.body, Comment.created, Comment.author_id,
+                             Comment.likes, User.username).join(User, Comment.author_id == User.id).filter(
+        Comment.board_id == board_id).all()
     if comments_info is None:
         return make_response(jsonify({
             'code': 400,
@@ -395,6 +394,7 @@ def get_all_comments(board_id):
     for comment_info in comments_info:
         comments.append({
             'id': comment_info.id,
+            'post_id': comment_info.post_id,
             'body': comment_info.body,
             'created': comment_info.created,
             'username': comment_info.username,
@@ -487,7 +487,8 @@ def like_comment():
     stmt = select(User).where(User.email == user_email)
     user = db.scalar(stmt)
     user_id = user.id
-    comment_like_info = db.query(CommentLike).filter(CommentLike.user_id == user_id, CommentLike.comment_id == comment_id,
+    comment_like_info = db.query(CommentLike).filter(CommentLike.user_id == user_id,
+                                                     CommentLike.comment_id == comment_id,
                                                      CommentLike.board_id == board_id).first()
     if comment_like_info is None:
         # the user has not liked the comment, add a like
